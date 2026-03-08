@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>SummonKit</string>
+
+    <key>CFBundleIdentifier</key>
+    <string>com.julianxhokaxhiu.SummonKit</string>
+
+    <key>CFBundleName</key>
+    <string>SummonKit</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>SummonKit</string>
+
+    <key>CFBundleVersion</key>
+    <string>0</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>0.0.0</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+
+    <!-- Allow the app to run on Apple Silicon natively -->
+    <key>LSArchitecturePriority</key>
+    <array>
+        <string>arm64</string>
+        <string>x86_64</string>
+    </array>
+
+    <!-- Prevent macOS from treating this as a simple script -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+
+    <!-- Network access for downloading installer -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+
+    <!--
+        EdDSA public key for Sparkle update signature verification.
+        Generate once with: .build/artifacts/.../bin/generate_keys
+        Store the PRIVATE key as the SPARKLE_PRIVATE_KEY GitHub Actions secret.
+        Paste the PUBLIC key here.
+    -->
+    <key>SUPublicEDKey</key>
+    <string>z6k/EfTzDMT2mPEmls8JP6I/Iv+yNd9qY3VwjJedJIc=</string>
+</dict>
+</plist>

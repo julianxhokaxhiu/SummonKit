@@ -1,0 +1,106 @@
+name: SummonKit
+
+run-name: 1.0.0.${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+    tags:
+    - "*"
+  pull_request:
+    branches:
+    - master
+
+env:
+  _IS_BUILD_CANARY: false
+  _IS_GITHUB_RELEASE: false
+  _RELEASE_NAME: SummonKit
+  _RELEASE_VERSION: v0
+  _RELEASE_CONFIGURATION: Release
+  _BUILD_BRANCH: "${{ github.ref }}"
+  _APP_VERSION: "1.0.0"
+  # GIT: Fix reporting from stderr to stdout
+  GIT_REDIRECT_STDERR: 2>&1
+
+jobs:
+  SummonKit:
+    runs-on: macos-latest
+    timeout-minutes: 1440
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.0
+    - name: Build
+      run: ".github/workflows/build.sh"
+      env:
+        SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Publish PR artifacts
+      if: env._IS_GITHUB_RELEASE == 'false' && success()
+      uses: actions/upload-artifact@v4.0.0
+      with:
+        name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
+        path: "dist/*.dmg"
+    - name: Publish Canary release
+      uses: ncipollo/release-action@v1
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
+      with:
+        artifacts: "dist/*.dmg"
+        allowUpdates: true
+        generateReleaseNotes: true
+        prerelease: true
+        removeArtifacts: true
+        tag: canary
+        name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
+        body: |
+          This is a canary build. Please be aware it may be prone to crashing and is NOT tested by anyone.
+          The App is NOT signed. You need to allow it to run in your Gatekeeper settings panel. Use this build AT YOUR OWN RISK!
+    - name: Publish Stable release
+      uses: ncipollo/release-action@v1
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
+      with:
+        artifacts: "dist/*.dmg"
+        generateReleaseNotes: true
+        makeLatest: true
+        removeArtifacts: true
+        name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
+    - name: Publish appcast to GitHub Pages
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
+      run: |
+        mkdir -p ./gh-pages
+        cp ./dist/appcast.xml ./gh-pages/appcast.xml
+    - name: Deploy appcast to GitHub Pages
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./gh-pages
+        keep_files: true
+        commit_message: "Update appcast.xml for ${{ env._RELEASE_VERSION }}"
+    - name: Publish canary appcast to GitHub Pages
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
+      run: |
+        mkdir -p ./gh-pages
+        cp ./dist/appcast-canary.xml ./gh-pages/appcast-canary.xml
+    - name: Deploy canary appcast to GitHub Pages
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./gh-pages
+        keep_files: true
+        commit_message: "Update appcast-canary.xml for ${{ env._RELEASE_VERSION }}"
+    - name: Cleanup previous release workflows
+      uses: Mattraks/delete-workflow-runs@v2
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 1
+        keep_minimum_runs: 1
+        delete_run_by_conclusion_pattern: >-
+          ${{
+            !contains(github.event.inputs.delete_run_by_name_pattern, '1.0.0')
+            && github.event.inputs.delete_run_by_name_pattern
+          }}
