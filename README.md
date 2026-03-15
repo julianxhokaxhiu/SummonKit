@@ -63,7 +63,7 @@ Then, depending on which game edition you own you might want to follow one of th
 
 - Install [Steam for Mac](https://cdn.fastly.steamstatic.com/client/installer/steam.dmg)
 - Quit the Steam app
-- Run this in your terminal: `echo "@sSteamCmdForcePlatformType windows" > ~/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_dev.cfg`
+- Run this in your terminal: `echo "@sSteamCmdForcePlatformType windows" > ~/Library/Application\ Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_dev.cfg`
 - Open Steam and install [FINAL FANTASY VII (2013)](https://steamdb.info/app/39140/) or [FINAL FANTASY VII](https://steamdb.info/app/3837340/)
 - Launch `SummonKit.app` and click on `FF7 -> Launch 7th Heaven`
 - Follow the prompts ( accept permission requests if any )
@@ -79,7 +79,7 @@ Then, depending on which game edition you own you might want to follow one of th
 
 - Install [Steam for Mac](https://cdn.fastly.steamstatic.com/client/installer/steam.dmg)
 - Quit the Steam app
-- Run this in your terminal: `echo "@sSteamCmdForcePlatformType windows" > ~/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_dev.cfg`
+- Run this in your terminal: `echo "@sSteamCmdForcePlatformType windows" > ~/Library/Application\ Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_dev.cfg`
 - Open Steam and install [FINAL FANTASY VIII](https://steamdb.info/app/39150/)
 - Launch `SummonKit.app` and click on `FF8 -> Launch Junction VIII`
 - Follow the prompts ( accept permission requests if any )
