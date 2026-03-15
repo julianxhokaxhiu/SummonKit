@@ -4,13 +4,13 @@
         <title>SummonKit</title>
         <item>
             <title>1.0.0</title>
-            <pubDate>Sun, 15 Mar 2026 14:45:21 +0000</pubDate>
+            <pubDate>Sun, 15 Mar 2026 14:53:36 +0000</pubDate>
             <link>https://github.com/julianxhokaxhiu/SummonKit</link>
-            <sparkle:fullReleaseNotesLink>https://github.com/julianxhokaxhiu/SummonKit/releases/tag/v1.0.0-1773585799</sparkle:fullReleaseNotesLink>
-            <sparkle:version>1773585799</sparkle:version>
+            <sparkle:fullReleaseNotesLink>https://github.com/julianxhokaxhiu/SummonKit/releases/tag/1.0.0</sparkle:fullReleaseNotesLink>
+            <sparkle:version>1773586317</sparkle:version>
             <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/julianxhokaxhiu/SummonKit/releases/download/v1.0.0-1773585799/SummonKit-v1.0.0-1773585799.dmg" length="601001050" type="application/octet-stream" sparkle:edSignature="Xg37Zr+I25lXKpjkg6L/OUMnbqP3cVaSFsTF5KgCkKWE0f2E68Px0rtxWMXo+nzz5RSIYaGgTY7nXv13cZCiAQ=="/>
+            <enclosure url="https://github.com/julianxhokaxhiu/SummonKit/releases/download/1.0.0/SummonKit-v1.0.0-1773586317.dmg" length="601000602" type="application/octet-stream" sparkle:edSignature="tfb1MjcJJhxukSrZbNsFmHM+iQTqpf9DIG+DVrvjBdGcEtNGLe/Nk+q/8cS0dm/O03Cc9bGEYr/OO8/+ZOPLDw=="/>
         </item>
     </channel>
 </rss>
