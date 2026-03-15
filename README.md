@@ -26,7 +26,15 @@ Game editions supported:
 
 ### Does SummonKit support Steam achievements?
 
-NO! Steam achievements are not yet supported, until Valve will allow us to make use of Steam IPC. That layer has been implemented on Proton, which unfortunately is not available for macOS.
+**NO!** Steam achievements are not yet supported, until Valve will allow us to make use of Steam IPC. That layer has been implemented in Proton, however is not available for macOS.
+
+### Which is the best Backend renderer?
+
+The suggested one to be used is **Vulkan**. This is currently the automatic chosen option when using default settings.
+
+DirectX 11/12 is also possible to be used, via [DXMT](https://github.com/3Shain/dxmt) however the performance is not at the same level as Vulkan. Feel free to experiment with it.
+
+OpenGL under Apple Silicon simply does NOT work. While on Intel Macs it may. Do not consider using this option as it is mainly provided for legacy reasons, which does not apply for Mac machines.
 
 ## How to use
 
@@ -39,15 +47,6 @@ Then, depending on which game edition you own you might want to follow one of th
 ## 7th Heaven
 
 ![Final Fantasy VII running on 7th Heaven](.screens/7thheaven.png)
-
-> **PLEASE NOTE:**
->
-> **Vulkan is the suggested backend renderer**, which seems to provide the best performance under Apple Silicon.
->
-> DirectX 11/12 works, but experience may vary, feel free to test.
->
-> OpenGL under Apple Silicon simply does NOT work.<br>
-> On Intel Macs it may, depending on which GPU you have. Do not consider using this option as it is provided for legacy reasons.
 
 ### GOG Release
 
@@ -62,10 +61,6 @@ Then, depending on which game edition you own you might want to follow one of th
 
 ### Steam 2013 or Rerelease
 
-> **PLEASE NOTE:**
->
-> Steam achievements are currently NOT supported. It requires a native IPC layer which is available only under Windows and Linux/Proton.
-
 - Install [Steam for Mac](https://cdn.fastly.steamstatic.com/client/installer/steam.dmg)
 - Quit the Steam app
 - Run this in your terminal: `echo "@sSteamCmdForcePlatformType windows" > ~/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_dev.cfg`
@@ -74,27 +69,13 @@ Then, depending on which game edition you own you might want to follow one of th
 - Follow the prompts ( accept permission requests if any )
 - When asked to pick an installed click on Skip
 - When 7th Heaven launches, hit `Save` on the Settings window and wait for FFNx to be installed
-- **SUGGESTED:** Go to `Settings -> Game Driver -> Backend` and choose `Vulkan` then hit `Save`
 - Hit Play and Enjoy!
 
 ## Junction VIII
 
 ![Final Fantasy VIII running on Junction VIII](.screens/junctionviii.png)
 
-> **PLEASE NOTE:**
->
-> **Vulkan is the suggested backend renderer**, which seems to provide the best performance under Apple Silicon.
->
-> DirectX 11/12 works, but experience may vary, feel free to test.
->
-> OpenGL under Apple Silicon simply does NOT work.<br>
-> On Intel Macs it may, depending on which GPU you have. Do not consider using this option as it is provided for legacy reasons.
-
 ### Steam 2013
-
-> **PLEASE NOTE:**
->
-> Steam achievements are currently NOT supported. It requires a native IPC layer which is available only under Windows and Linux/Proton.
 
 - Install [Steam for Mac](https://cdn.fastly.steamstatic.com/client/installer/steam.dmg)
 - Quit the Steam app
@@ -103,14 +84,11 @@ Then, depending on which game edition you own you might want to follow one of th
 - Launch `SummonKit.app` and click on `FF8 -> Launch Junction VIII`
 - Follow the prompts ( accept permission requests if any )
 - When Junction VIII launches, hit `Save` on the Settings window and wait for FFNx to be installed
-- **SUGGESTED:** Go to `Settings -> Game Driver -> Backend` and choose `Vulkan` then hit `Save`
 - Hit Play and Enjoy!
 
 ## How to build
 
-### Preparation
-
-Make sure you have installed the [XCode Command Line Tools](https://developer.apple.com/documentation/xcode/installing-the-command-line-tools#Install-the-Command-Line-Tools-package-in-Terminal)
+Make sure you have installed the [XCode Command Line Tools](https://developer.apple.com/documentation/xcode/installing-the-command-line-tools#Install-the-Command-Line-Tools-package-in-Terminal), then:
 
 ```sh
 $ git clone https://github.com/julianxhokaxhiu/SummonKit.git
