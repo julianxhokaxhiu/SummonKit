@@ -52,9 +52,33 @@ struct RuntimePaths {
     let wineLib: URL
     let appSupport: URL
     let winePrefix: URL
-    let targetExe: URL
     let logFile: URL
     let wineLogFile: URL
+    let product: LauncherProduct
+    var gameDirectory: URL?
+
+    var targetExe: URL {
+        resolvePathRelativeToGame(product.targetExeRelativePath)
+    }
+
+    var targetExeProfilePath: URL {
+        resolvePathRelativeToGame(product.targetExeProfilePath)
+    }
+
+    private func resolvePathRelativeToGame(_ path: String) -> URL {
+        if path.hasPrefix("./") {
+            guard let gameDir = gameDirectory else {
+                // Fallback: try to construct game directory from product info
+                let defaultGameDir = winePrefix.appendingPathComponent("drive_c/Program Files (x86)/Steam/steamapps/common/\(product.steamGameDirectoryName)")
+                let relativePath = String(path.dropFirst(2))
+                return defaultGameDir.appendingPathComponent(relativePath)
+            }
+            let relativePath = String(path.dropFirst(2))
+            return gameDir.appendingPathComponent(relativePath)
+        } else {
+            return winePrefix.appendingPathComponent(path)
+        }
+    }
 
     static func make(for product: LauncherProduct) -> RuntimePaths {
         let bundle = Bundle.main.bundleURL
@@ -71,9 +95,10 @@ struct RuntimePaths {
             wineLib: wineDir.appendingPathComponent("lib"),
             appSupport: appSupport,
             winePrefix: winePrefix,
-            targetExe: winePrefix.appendingPathComponent(product.targetExeRelativePath),
             logFile: appSupport.appendingPathComponent("launcher.log"),
-            wineLogFile: appSupport.appendingPathComponent("wine.log")
+            wineLogFile: appSupport.appendingPathComponent("wine.log"),
+            product: product,
+            gameDirectory: nil
         )
     }
 }
@@ -155,7 +180,7 @@ final class StatusWindow {
 
 final class LauncherEngine {
     private let product: LauncherProduct
-    private let paths: RuntimePaths
+    private var paths: RuntimePaths
     private var statusWindow: StatusWindow!
 
     init(product: LauncherProduct) {
@@ -307,7 +332,7 @@ final class LauncherEngine {
         setenv("WINEDLLPATH", paths.wineDir.appendingPathComponent("lib/wine").path, 1)
         setenv("WINE_LARGE_ADDRESS_AWARE", "1", 1)
         setenv("WINEDEBUG", "+err,+warn,+debugstr", 1)
-        setenv("WINEDLLOVERRIDES", "dinput=n,b", 1)
+        setenv("WINEDLLOVERRIDES", "dinput,xaudio2_9=n,b", 1)
         setenv("DXMT_LOG_LEVEL", "info", 1)
         setenv("DXMT_LOG_PATH", paths.appSupport.path, 1)
 
@@ -461,9 +486,15 @@ final class LauncherEngine {
                let assets = json["assets"] as? [[String: Any]] {
                 for asset in assets {
                     if let name = asset["name"] as? String,
-                       name.hasSuffix("_Release.exe"),
                        let downloadURL = asset["browser_download_url"] as? String {
-                        return downloadURL
+                        // For Memoria and other special launchers, look for the installerFileBaseName
+                        if name.contains(product.installerFileBaseName) && name.hasSuffix(".exe") {
+                            return downloadURL
+                        }
+                        // Fallback to the traditional pattern for classic launchers
+                        if name.hasSuffix("_Release.exe") {
+                            return downloadURL
+                        }
                     }
                 }
             }
@@ -472,6 +503,117 @@ final class LauncherEngine {
         }
 
         return nil
+    }
+
+    private func getNativeMacOSInstallerURL() -> String? {
+        guard let url = URL(string: product.githubApiURL) else {
+            return nil
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let assets = json["assets"] as? [[String: Any]] {
+                for asset in assets {
+                    if let name = asset["name"] as? String,
+                       let downloadURL = asset["browser_download_url"] as? String {
+                        // Look for native macOS binary (osx-64)
+                        if name.contains(product.installerFileBaseName) && name.contains("osx-x64") && !name.hasSuffix(".exe") {
+                            return downloadURL
+                        }
+                    }
+                }
+            }
+        } catch {
+            log("Failed to fetch native macOS installer URL: \(error)")
+        }
+
+        return nil
+    }
+
+    private func downloadNativeMacOSInstaller() -> URL? {
+        log("Downloading \(product.displayName) native macOS patcher...")
+
+        guard let installerURL = getNativeMacOSInstallerURL() else {
+            log("Failed to determine native macOS installer URL")
+            return nil
+        }
+
+        log("Native macOS installer URL: \(installerURL)")
+        showStatusMessage("Downloading \(product.displayName) macOS patcher. This may take a few minutes...", style: .informational)
+
+        let installerBinary = paths.appSupport.appendingPathComponent("\(product.installerFileBaseName)-osx-64")
+        let tempFile = paths.appSupport.appendingPathComponent("\(product.installerFileBaseName)-osx-64.tmp")
+
+        guard let url = URL(string: installerURL) else {
+            log("Invalid installer URL: \(installerURL)")
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var success = false
+
+        let task = URLSession.shared.downloadTask(with: request) { tempURL, response, error in
+            defer { semaphore.signal() }
+
+            if let error = error {
+                self.log("Download failed: \(error.localizedDescription)")
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                self.log("Download failed: no HTTP response")
+                return
+            }
+
+            self.log("HTTP Response: \(httpResponse.statusCode)")
+            guard httpResponse.statusCode < 400 else {
+                self.log("Download failed with HTTP \(httpResponse.statusCode)")
+                return
+            }
+
+            guard let tempURL = tempURL else {
+                self.log("Download failed: missing temp URL")
+                return
+            }
+
+            do {
+                try FileManager.default.removeItem(at: installerBinary)
+            } catch {
+                // Existing file may not exist.
+            }
+
+            do {
+                try FileManager.default.moveItem(at: tempURL, to: installerBinary)
+                self.log("Native macOS installer download complete")
+                success = true
+            } catch {
+                self.log("Failed to save downloaded file: \(error.localizedDescription)")
+            }
+        }
+
+        task.resume()
+        semaphore.wait()
+
+        if !success {
+            try? FileManager.default.removeItem(at: tempFile)
+            return nil
+        }
+
+        // Make the binary executable
+        do {
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: installerBinary.path)
+        } catch {
+            log("Warning: Failed to set executable permissions on macOS patcher: \(error.localizedDescription)")
+        }
+
+        return installerBinary
     }
 
     private func downloadInstaller() -> Bool {
@@ -801,6 +943,51 @@ final class LauncherEngine {
         return nil
     }
 
+    private func updateGameDirectory(gameInstallDir: String) {
+        let gameDir = paths.winePrefix.appendingPathComponent("drive_c/Program Files (x86)/Steam/steamapps/common/\(gameInstallDir)")
+        paths.gameDirectory = gameDir
+        log("Updated game directory: \(gameDir.path)")
+    }
+
+    private func handleMemoriaPatcher() {
+        guard product.id == "memoria" else {
+            log("Memoria patcher handling only for Memoria product")
+            return
+        }
+
+        guard let gameDir = paths.gameDirectory else {
+            log("Game directory not set, cannot run Memoria patcher")
+            return
+        }
+
+        let patcherExe = paths.appSupport.appendingPathComponent("\(product.installerFileBaseName).exe")
+
+        if !FileManager.default.fileExists(atPath: patcherExe.path) {
+            log("Memoria.Patcher not found at: \(patcherExe.path), skipping patcher")
+            return
+        }
+
+        log("Running Memoria.Patcher...")
+        showStatusMessage("Running Memoria.Patcher. This may take a few minutes...", style: .informational)
+
+        // Copy patcher to game directory if needed
+        let gameDirPatcher = gameDir.appendingPathComponent(product.installerFileBaseName + ".exe")
+        if !FileManager.default.fileExists(atPath: gameDirPatcher.path) {
+            do {
+                try FileManager.default.copyItem(at: patcherExe, to: gameDirPatcher)
+                log("Copied Memoria.Patcher to game directory: \(gameDirPatcher.path)")
+            } catch {
+                log("Warning: Failed to copy patcher to game directory: \(error.localizedDescription)")
+                // Continue anyway, try to run from appSupport
+            }
+        }
+
+        // Run the patcher from the game directory
+        let patcherToRun = FileManager.default.fileExists(atPath: gameDirPatcher.path) ? gameDirPatcher : patcherExe
+        runCommand(paths.wineBin.path, args: [patcherToRun.path, gameDir.path])
+        log("Memoria.Patcher execution complete")
+    }
+
     private func copySteamVDFFiles(gameID: String, libraryPath: String, steamPath: String) {
         guard !gameID.isEmpty && !libraryPath.isEmpty else {
             log("Cannot copy VDF files: gameID or libraryPath is empty")
@@ -1012,6 +1199,35 @@ final class LauncherEngine {
     private func openGamePathInFinder() {
         showStatusMessage("Locating game path...", style: .informational)
 
+        if product.id == "memoria" {
+            let winePrefixCandidates: [URL] = [
+                paths.gameDirectory,
+                paths.targetExe.deletingLastPathComponent(),
+                paths.winePrefix.appendingPathComponent("drive_c/Program Files (x86)/Steam/steamapps/common/\(product.steamGameDirectoryName)"),
+                paths.winePrefix.appendingPathComponent(product.gogFallbackRelativePath)
+            ].compactMap { $0 }
+
+            guard let currentGamePath = winePrefixCandidates.first(where: {
+                FileManager.default.fileExists(atPath: $0.path)
+            }) else {
+                showPopup(
+                    title: "Path not found",
+                    message: "Could not locate \(product.gameDisplayName) inside the Wine prefix."
+                )
+                statusWindow.hide()
+                log("Could not resolve current game path for Memoria inside Wine prefix")
+                return
+            }
+
+            _ = DispatchQueue.main.sync {
+                NSWorkspace.shared.open(currentGamePath)
+            }
+
+            statusWindow.hide()
+            log("Opened game path (Memoria Wine prefix path): \(currentGamePath.path)")
+            return
+        }
+
         guard let gameExeLocation = readGameExecutableLocationFromSettingsXML() else {
             showPopup(
                 title: "Path not found",
@@ -1044,7 +1260,7 @@ final class LauncherEngine {
 
     private func hasSteamInstallInPrefix() -> Bool {
         let steamappsPath = paths.winePrefix.path + "/drive_c/Program Files (x86)/Steam/steamapps"
-        let steamIDs = ["39140", "39150"]
+        let steamIDs = ["39140", "39150", "377840"]
 
         for gameID in steamIDs {
             let appManifest = "\(steamappsPath)/appmanifest_\(gameID).acf"
@@ -1251,8 +1467,22 @@ final class LauncherEngine {
         log("Opened mod library path: \(modLibraryPath.path)")
     }
 
+    private func isProductAlreadyInstalled() -> Bool {
+        // For Memoria, check if the patcher exists in the game directory, indicating it's already been installed
+        if product.id == "memoria" {
+            if let gameDir = paths.gameDirectory {
+                let patcherExe = gameDir.appendingPathComponent(product.installerFileBaseName + ".exe")
+                return FileManager.default.fileExists(atPath: patcherExe.path)
+            }
+            return false
+        }
+        
+        // For other products, check if the target executable exists
+        return FileManager.default.fileExists(atPath: paths.targetExe.path)
+    }
+
     private func runInstallerIfNeeded(customInstaller: URL? = nil) {
-        if FileManager.default.fileExists(atPath: paths.targetExe.path) {
+        if isProductAlreadyInstalled() {
             log("\(product.displayName) already installed")
             return
         }
@@ -1260,6 +1490,71 @@ final class LauncherEngine {
         log("\(product.displayName) not found, starting installation flow")
         initializeWinePrefixIfNeeded()
 
+        // Special handling for Memoria: it's not a traditional installer, but a patcher
+        if product.id == "memoria" {
+            guard let gameDir = paths.gameDirectory else {
+                showError("Game directory not set. Cannot proceed with Memoria installation.")
+                return
+            }
+
+            let patcherExe = paths.appSupport.appendingPathComponent("\(product.installerFileBaseName).exe")
+            
+            // Check if we already have the patcher
+            if FileManager.default.fileExists(atPath: patcherExe.path) {
+                log("Memoria.Patcher.exe already exists, running via Wine...")
+                handleMemoriaPatcher()
+            } else {
+                // Download native macOS patcher and .exe, then run native macOS version
+                log("Memoria.Patcher.exe not found, downloading native macOS patcher...")
+                
+                guard let nativePatcher = downloadNativeMacOSInstaller() else {
+                    showError("Failed to download Memoria.Patcher native macOS binary. Please check your internet connection.")
+                    return
+                }
+                
+                // Also download the .exe version to store in game directory
+                if !downloadInstaller() {
+                    log("Warning: Failed to download Memoria.Patcher.exe")
+                    // Continue anyway, we have the native macOS binary
+                } else {
+                    // Copy .exe to game directory (but don't run it)
+                    let gameDirPatcher = gameDir.appendingPathComponent(product.installerFileBaseName + ".exe")
+                    do {
+                        try FileManager.default.copyItem(at: patcherExe, to: gameDirPatcher)
+                        log("Copied Memoria.Patcher.exe to game directory: \(gameDirPatcher.path)")
+                    } catch {
+                        log("Warning: Failed to copy patcher to game directory: \(error.localizedDescription)")
+                    }
+                }
+                
+                // Run native macOS patcher with game path
+                log("Running native macOS Memoria.Patcher with game path...")
+                showStatusMessage("Running Memoria.Patcher. This may take a few minutes...", style: .informational)
+                
+                let task = Process()
+                task.executableURL = nativePatcher
+                task.arguments = [gameDir.path]
+                
+                do {
+                    try task.run()
+                    task.waitUntilExit()
+                    log("Native macOS Memoria.Patcher execution complete (exit code: \(task.terminationStatus))")
+                } catch {
+                    showError("Failed to run Memoria.Patcher:\n\(error.localizedDescription)")
+                    return
+                }
+            }
+            
+            if !FileManager.default.fileExists(atPath: paths.targetExe.path) {
+                showError("Memoria.Patcher completed, but FF9_Launcher.exe was not found. Please check the log file.")
+                return
+            }
+            
+            log("Memoria patched successfully")
+            return
+        }
+
+        // Traditional installer flow for other launchers
         if let customInstaller = customInstaller {
             log("Running custom game installer: \(customInstaller.path)")
             showStatusMessage(
@@ -1333,6 +1628,7 @@ final class LauncherEngine {
                     )
                     return
                 }
+                updateGameDirectory(gameInstallDir: gameInstall.installDir)
 
                 let steamPath = paths.winePrefix.path + "/drive_c/Program Files (x86)/Steam"
                 copySteamVDFFiles(gameID: gameInstall.gameID, libraryPath: gameInstall.libraryPath, steamPath: steamPath)
@@ -1351,10 +1647,13 @@ final class LauncherEngine {
             return
         }
 
-        log("Launching \(product.displayName)...")
+        log("Launching \(product.displayName) (\(paths.targetExe.path))...")
         let task = Process()
         task.executableURL = paths.wineBin
         task.arguments = [paths.targetExe.path]
+        task.currentDirectoryURL = product.id == "memoria"
+            ? (paths.gameDirectory ?? paths.targetExe.deletingLastPathComponent())
+            : paths.targetExe.deletingLastPathComponent()
 
         do {
             try task.run()
@@ -1477,23 +1776,30 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDeleg
             launchItem.representedObject = product.id
             gameMenu.addItem(launchItem)
 
-            let logsPathItem = NSMenuItem(
-                title: "Open \(product.displayName) Profile path",
-                action: #selector(openLogsPathFromMenu(_:)),
-                keyEquivalent: ""
-            )
-            logsPathItem.target = self
-            logsPathItem.representedObject = product.id
-            gameMenu.addItem(logsPathItem)
+            var logsPathItem: NSMenuItem?
+            var modLibraryPathItem: NSMenuItem?
 
-            let modLibraryPathItem = NSMenuItem(
-                title: "Open \(product.displayName) Mod Library path",
-                action: #selector(openModLibraryPathFromMenu(_:)),
-                keyEquivalent: ""
-            )
-            modLibraryPathItem.target = self
-            modLibraryPathItem.representedObject = product.id
-            gameMenu.addItem(modLibraryPathItem)
+            if product.id != "memoria" {
+                let profilePathItem = NSMenuItem(
+                    title: "Open \(product.displayName) Profile path",
+                    action: #selector(openLogsPathFromMenu(_:)),
+                    keyEquivalent: ""
+                )
+                profilePathItem.target = self
+                profilePathItem.representedObject = product.id
+                gameMenu.addItem(profilePathItem)
+                logsPathItem = profilePathItem
+
+                let profileModLibraryPathItem = NSMenuItem(
+                    title: "Open \(product.displayName) Mod Library path",
+                    action: #selector(openModLibraryPathFromMenu(_:)),
+                    keyEquivalent: ""
+                )
+                profileModLibraryPathItem.target = self
+                profileModLibraryPathItem.representedObject = product.id
+                gameMenu.addItem(profileModLibraryPathItem)
+                modLibraryPathItem = profileModLibraryPathItem
+            }
 
             gameMenu.addItem(NSMenuItem.separator())
 
@@ -1558,8 +1864,12 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDeleg
             menuItemsByActionAndProduct["launch", default: [:]][product.id] = launchItem
             menuItemsByActionAndProduct["gamePath", default: [:]][product.id] = gamePathItem
             menuItemsByActionAndProduct["savePath", default: [:]][product.id] = savePathItem
-            menuItemsByActionAndProduct["modLibraryPath", default: [:]][product.id] = modLibraryPathItem
-            menuItemsByActionAndProduct["logsPath", default: [:]][product.id] = logsPathItem
+            if let modLibraryPathItem {
+                menuItemsByActionAndProduct["modLibraryPath", default: [:]][product.id] = modLibraryPathItem
+            }
+            if let logsPathItem {
+                menuItemsByActionAndProduct["logsPath", default: [:]][product.id] = logsPathItem
+            }
             menuItemsByActionAndProduct["winecfg", default: [:]][product.id] = winecfgItem
             menuItemsByActionAndProduct["regedit", default: [:]][product.id] = regeditItem
             menuItemsByActionAndProduct["prefix", default: [:]][product.id] = winePrefixItem
@@ -1834,7 +2144,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDeleg
 
 let providers: [any LauncherProductProviding] = [
     SeventhHeavenProvider(),
-    JunctionVIIIProvider()
+    JunctionVIIIProvider(),
+    MemoriaProvider()
 ]
 
 let allProducts: [LauncherProduct] = providers.map { $0.product }

@@ -14,6 +14,7 @@ Mod Managers supported:
 
 - [7thHeaven](https://github.com/tsunamods-codes/7th-Heaven)
 - [Junction VIII](https://github.com/tsunamods-codes/Junction-VIII)
+- [Memoria](https://github.com/Albeoris/Memoria)
 
 Game editions supported:
 
@@ -21,6 +22,7 @@ Game editions supported:
 - [FINAL FANTASY VII](https://steamdb.info/app/3837340/) (Steam)
 - [FINAL FANTASY VII](https://www.gog.com/en/game/final_fantasy_vii) (GOG)
 - [FINAL FANTASY VIII](https://steamdb.info/app/39150/) (Steam)
+- [FINAL FANTASY IX](https://steamdb.info/app/377840/) (Steam)
 
 ## FAQ
 
@@ -94,6 +96,23 @@ Then, depending on which game edition you own you might want to follow one of th
 - Launch `SummonKit.app` and click on `FF8 -> Launch Junction VIII`
 - Follow the prompts ( accept permission requests if any )
 - When Junction VIII launches, hit `Save` on the Settings window and wait for FFNx to be installed
+- Hit Play and Enjoy!
+
+## Memoria
+
+![Final Fantasy IX running on Memoria](.screens/memoria.png)
+
+### Steam
+
+- Install [Steam for Mac](https://cdn.fastly.steamstatic.com/client/installer/steam.dmg)
+- Quit the Steam app
+- Run this in your terminal:
+  ```
+  echo "@sSteamCmdForcePlatformType windows" > ~/Library/Application\ Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_dev.cfg
+  ```
+- Open Steam and install [FINAL FANTASY IX](https://steamdb.info/app/377840/)
+- Launch `SummonKit.app` and click on `FF9 -> Launch Memoria`
+- Follow the prompts ( accept permission requests if any )
 - Hit Play and Enjoy!
 
 ## How to build
