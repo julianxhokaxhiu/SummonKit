@@ -41,6 +41,9 @@ APP_VERSION="${_APP_VERSION:-0.0.0}"
 BUILD_VERSION="${_BUILD_VERSION:-$(date +%s)}"
 SIGN_IDENTITY=""
 DIST=""
+BUILD_CONFIGURATION="${_BUILD_CONFIGURATION:-release}"
+SKIP_RESOLVE=0
+CLEAN_SWIFT_BUILD=0
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 WINE_BASE="$SCRIPT_DIR/wine_runtime"
@@ -62,6 +65,22 @@ while [ "$#" -gt 0 ]; do
     --sign)
       SIGN_IDENTITY="${2:-}"
       shift 2
+      ;;
+    --configuration)
+      BUILD_CONFIGURATION="${2:-}"
+      if [ "$BUILD_CONFIGURATION" != "release" ] && [ "$BUILD_CONFIGURATION" != "debug" ]; then
+        echo "ERROR: --configuration must be either 'release' or 'debug'"
+        exit 1
+      fi
+      shift 2
+      ;;
+    --skip-resolve)
+      SKIP_RESOLVE=1
+      shift
+      ;;
+    --clean-swift-build)
+      CLEAN_SWIFT_BUILD=1
+      shift
       ;;
     *)
       echo "ERROR: Unknown argument: $1"
@@ -287,27 +306,37 @@ install_dxmt_runtime
 # ---------------------------------------------------------------------------
 # Resolve Swift package dependencies
 # ---------------------------------------------------------------------------
-echo "→ Resolving Swift package dependencies..."
 cd "$SCRIPT_DIR"
-swift package resolve
-echo "   Dependencies resolved."
+if [ "$SKIP_RESOLVE" -eq 1 ]; then
+  echo "→ Skipping dependency resolve (--skip-resolve enabled)."
+else
+  echo "→ Resolving Swift package dependencies..."
+  swift package resolve
+  echo "   Dependencies resolved."
+fi
 
 # ---------------------------------------------------------------------------
 # Compile Swift launcher
 # ---------------------------------------------------------------------------
-echo "→ Compiling Swift launcher via Swift Package Manager (universal: arm64 + x86_64)..."
+echo "→ Compiling Swift launcher via Swift Package Manager (universal: arm64 + x86_64, configuration: $BUILD_CONFIGURATION)..."
 
 ARM64_BUILD_PATH="$SCRIPT_DIR/.build-arm64"
 X64_BUILD_PATH="$SCRIPT_DIR/.build-x86_64"
 UNIVERSAL_BINARY="$SCRIPT_DIR/.build/SummonKit-universal"
+BIN_DIR="$BUILD_CONFIGURATION"
 
-rm -rf "$ARM64_BUILD_PATH" "$X64_BUILD_PATH"
+if [ "$CLEAN_SWIFT_BUILD" -eq 1 ]; then
+  echo "   Cleaning Swift build caches (--clean-swift-build enabled)..."
+  rm -rf "$ARM64_BUILD_PATH" "$X64_BUILD_PATH"
+else
+  echo "   Reusing Swift build caches for faster incremental rebuilds."
+fi
 
-swift build -c release --arch arm64 --build-path "$ARM64_BUILD_PATH" 2>&1 | sed 's/^/   [arm64] /'
-swift build -c release --arch x86_64 --build-path "$X64_BUILD_PATH" 2>&1 | sed 's/^/   [x86_64] /'
+swift build -c "$BUILD_CONFIGURATION" --arch arm64 --build-path "$ARM64_BUILD_PATH" 2>&1 | sed 's/^/   [arm64] /'
+swift build -c "$BUILD_CONFIGURATION" --arch x86_64 --build-path "$X64_BUILD_PATH" 2>&1 | sed 's/^/   [x86_64] /'
 
-ARM64_BINARY="$ARM64_BUILD_PATH/release/SummonKit"
-X64_BINARY="$X64_BUILD_PATH/release/SummonKit"
+ARM64_BINARY="$ARM64_BUILD_PATH/$BIN_DIR/SummonKit"
+X64_BINARY="$X64_BUILD_PATH/$BIN_DIR/SummonKit"
 
 if [ ! -f "$ARM64_BINARY" ]; then
   echo "ERROR: Build failed — arm64 binary not found at: $ARM64_BINARY"
