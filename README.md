@@ -34,7 +34,7 @@ SummonKit requires macOS Catalina (10.15) or newer.
 
 **NO!** Steam achievements are not yet supported, until Valve will allow us to make use of Steam IPC. That layer has been implemented in Proton, however is not available for macOS.
 
-### Which is the best Backend renderer?
+### Which is the best Backend renderer for 7th Heaven/Junction VIII?
 
 The suggested one to be used is **Vulkan**. This is currently the automatic chosen option when using default settings.
 
