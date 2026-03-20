@@ -37,6 +37,7 @@ struct LauncherProduct {
     let gogFallbackRelativePath: String
     let steamUserRelativePath: String
     let wineAppDefaultExeName: String
+    let wineDLLOverrides: String
     let allowsCustomGameInstaller: Bool
 }
 
@@ -332,7 +333,7 @@ final class LauncherEngine {
         setenv("WINEDLLPATH", paths.wineDir.appendingPathComponent("lib/wine").path, 1)
         setenv("WINE_LARGE_ADDRESS_AWARE", "1", 1)
         setenv("WINEDEBUG", "+err,+warn,+debugstr", 1)
-        setenv("WINEDLLOVERRIDES", "dinput,xaudio2_9=n,b", 1)
+        setenv("WINEDLLOVERRIDES", product.wineDLLOverrides, 1)
         setenv("DXMT_LOG_LEVEL", "info", 1)
         setenv("DXMT_LOG_PATH", paths.appSupport.path, 1)
 

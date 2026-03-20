@@ -18,6 +18,7 @@ struct JunctionVIIIProvider: LauncherProductProviding {
         gogFallbackRelativePath: "drive_c/GOG Games/FINAL FANTASY VIII",
         steamUserRelativePath: "Documents/Square Enix/FINAL FANTASY VIII Steam/user_12345678",
         wineAppDefaultExeName: "Junction VIII.exe",
+        wineDLLOverrides: "dinput=n,b",
         allowsCustomGameInstaller: false
     )
 }
