@@ -1541,11 +1541,11 @@ final class LauncherEngine {
                     log("Warning: Failed to download Memoria.Patcher.exe")
                     // Continue anyway, we have the native macOS binary
                 } else {
-                    // Copy .exe to game directory (but don't run it)
+                    // Move .exe to game directory (but don't run it)
                     let gameDirPatcher = gameDir.appendingPathComponent(product.installerFileBaseName + ".exe")
                     do {
-                        try FileManager.default.copyItem(at: patcherExe, to: gameDirPatcher)
-                        log("Copied Memoria.Patcher.exe to game directory: \(gameDirPatcher.path)")
+                        try FileManager.default.moveItem(at: patcherExe, to: gameDirPatcher)
+                        log("Moved Memoria.Patcher.exe to game directory: \(gameDirPatcher.path)")
                     } catch {
                         log("Warning: Failed to copy patcher to game directory: \(error.localizedDescription)")
                     }
@@ -1566,6 +1566,13 @@ final class LauncherEngine {
                 } catch {
                     showError("Failed to run Memoria.Patcher:\n\(error.localizedDescription)")
                     return
+                }
+
+                do {
+                    try FileManager.default.removeItem(at: nativePatcher)
+                    log("Cleaned up native macOS patcher executable")
+                } catch {
+                    log("Warning: Failed to clean up native macOS patcher executable: \(error.localizedDescription)")
                 }
             }
             
