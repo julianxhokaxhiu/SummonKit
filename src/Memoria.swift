@@ -18,6 +18,6 @@ struct MemoriaProvider: LauncherProductProviding {
         gogFallbackRelativePath: "drive_c/GOG Games/FINAL FANTASY IX",
         steamUserRelativePath: "drive_c/Users/\(NSUserName())/AppData/LocalLow/SquareEnix/FINAL FANTASY IX/Steam/EncryptedSavedData",
         wineAppDefaultExeName: "FF9_Launcher.exe",
-        allowsCustomGameInstaller: false
+        allowsCustomGameInstaller: true
     )
 }

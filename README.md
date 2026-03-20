@@ -23,6 +23,7 @@ Game editions supported:
 - [FINAL FANTASY VII](https://www.gog.com/en/game/final_fantasy_vii) (GOG)
 - [FINAL FANTASY VIII](https://steamdb.info/app/39150/) (Steam)
 - [FINAL FANTASY IX](https://steamdb.info/app/377840/) (Steam)
+- [FINAL FANTASY IX](https://www.gog.com/en/game/final_fantasy_ix) (GOG)
 
 ## FAQ
 
@@ -113,6 +114,16 @@ Then, depending on which game edition you own you might want to follow one of th
 - Open Steam and install [FINAL FANTASY IX](https://steamdb.info/app/377840/)
 - Launch `SummonKit.app` and click on `FF9 -> Launch Memoria`
 - Follow the prompts ( accept permission requests if any )
+- Hit Play and Enjoy!
+
+### GOG Release
+
+- Download the installer files from the [GOG release](https://www.gog.com/en/game/final_fantasy_ix)
+- Launch `SummonKit.app` and click on `FF9 -> Launch Memoria`
+- Follow the prompts ( accept permission requests if any )
+- When asked to pick an installer pick the `setup_final_fantasy_ix_1.0_gog_v1_(85797).exe` file
+- Accept the EULA and click on Install
+- Click on Exit when the installer finishes
 - Hit Play and Enjoy!
 
 ## How to build

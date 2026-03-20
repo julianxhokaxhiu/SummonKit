@@ -1275,6 +1275,30 @@ final class LauncherEngine {
     private func openSavePathInFinder() {
         showStatusMessage("Locating save path...", style: .informational)
 
+        // Memoria stores saves in the Steam-style user path inside the Wine prefix for both Steam and GOG installs.
+        if product.id == "memoria" {
+            let steamUserPath = paths.winePrefix
+                .appendingPathComponent(product.steamUserRelativePath)
+
+            do {
+                try FileManager.default.createDirectory(at: steamUserPath, withIntermediateDirectories: true)
+                _ = DispatchQueue.main.sync {
+                    NSWorkspace.shared.open(steamUserPath)
+                }
+                statusWindow.hide()
+                log("Opened save path (Memoria Wine prefix Steam user path): \(steamUserPath.path)")
+                return
+            } catch {
+                showPopup(
+                    title: "Path not found",
+                    message: "Could not open save path for \(product.gameDisplayName) inside the Wine prefix."
+                )
+                statusWindow.hide()
+                log("Failed to open Memoria Wine prefix save path: \(error.localizedDescription)")
+                return
+            }
+        }
+
         if hasSteamInstallInPrefix() {
             let steamUserPath = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(product.steamUserRelativePath)
@@ -1604,16 +1628,59 @@ final class LauncherEngine {
 
         setupWineEnvironment()
 
-        let shouldPromptForCustomInstaller =
-            product.allowsCustomGameInstaller &&
-            !FileManager.default.fileExists(atPath: paths.targetExe.path)
+        // For Memoria, pre-resolve game install before deciding whether to prompt for a custom installer.
+        // Prefer GOG-in-prefix path first to avoid falling back to Steam copy when GOG is already installed.
+        // Prompt suppression should trigger only when the game is already set up in this Wine prefix
+        // (either via GOG-in-prefix path or a Steam setup already present in prefix manifests).
+        let preDetectedGOGInstall = product.id == "memoria" ? findGOGGamePath() : nil
+        let hasSteamSetupInPrefix = product.id == "memoria" ? hasSteamInstallInPrefix() : false
+        let preDetectedGameInstall = preDetectedGOGInstall ?? (product.id == "memoria" ? findGamePath() : nil)
+
+        // For Memoria, paths.targetExe can't be resolved before gameDirectory is set, so use prefix-level
+        // setup signals instead: GOG path in prefix or Steam setup already copied into prefix.
+        let shouldPromptForCustomInstaller: Bool
+        if product.id == "memoria" {
+            shouldPromptForCustomInstaller =
+                product.allowsCustomGameInstaller &&
+                preDetectedGOGInstall == nil &&
+                !hasSteamSetupInPrefix
+        } else {
+            shouldPromptForCustomInstaller =
+                product.allowsCustomGameInstaller &&
+                !FileManager.default.fileExists(atPath: paths.targetExe.path)
+        }
         let selectedCustomInstaller = shouldPromptForCustomInstaller ? promptForCustomGameInstaller() : nil
 
-        if selectedCustomInstaller == nil {
+        // Memoria needs the game directory before patching; if a custom installer was selected,
+        // run it first so autodetection can find the installed game path.
+        if product.id == "memoria", let customInstaller = selectedCustomInstaller {
+            log("Running custom game installer for Memoria: \(customInstaller.path)")
+            showStatusMessage(
+                "Running \(product.gameDisplayName) installer. Please follow the on-screen instructions.",
+                style: .informational
+            )
+            runCommand(paths.wineBin.path, args: [customInstaller.path])
+            runCommand(paths.wineServer.path, args: ["-w"])
+        }
+
+        let shouldResolveGameInstall = selectedCustomInstaller == nil || product.id == "memoria"
+
+        if shouldResolveGameInstall {
             log("Locating \(product.gameDisplayName) installation...")
-            guard let gameInstall = findGamePath() else {
+            let resolvedGameInstall: GameInstallLocation?
+            if let preDetectedGameInstall, selectedCustomInstaller == nil {
+                // Re-use pre-detected install only when no custom installer was run
+                // (post-install re-detection is needed when GOG installer just ran)
+                resolvedGameInstall = preDetectedGameInstall
+            } else if product.id == "memoria" {
+                resolvedGameInstall = findGOGGamePath() ?? findGamePath()
+            } else {
+                resolvedGameInstall = findGamePath()
+            }
+
+            guard let gameInstall = resolvedGameInstall else {
                 showError(
-                    "Could not locate \(product.gameDisplayName) in your Steam library. Please ensure it is installed via Steam."
+                    "Could not locate \(product.gameDisplayName) in Steam or GOG locations. Please ensure it is installed and try again."
                 )
                 return
             }
@@ -1634,6 +1701,8 @@ final class LauncherEngine {
                 copySteamVDFFiles(gameID: gameInstall.gameID, libraryPath: gameInstall.libraryPath, steamPath: steamPath)
                 setupSteamRegistry(steamPath: steamPath)
             } else {
+                paths.gameDirectory = URL(fileURLWithPath: gameInstall.path)
+                log("Updated game directory (non-Steam): \(gameInstall.path)")
                 log("Detected non-Steam install at \(gameInstall.path); skipping Steam copy and Steam registry sync")
             }
         }
