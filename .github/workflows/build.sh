@@ -23,6 +23,7 @@ if [[ "$_BUILD_BRANCH" == "refs/heads/master" || "$_BUILD_BRANCH" == "refs/tags/
   export _IS_BUILD_CANARY="true"
   export _IS_GITHUB_RELEASE="true"
 elif [[ "$_BUILD_BRANCH" == refs/tags/* ]]; then
+  export _CHANGELOG_VERSION="${_APP_VERSION//.}"
   export _IS_GITHUB_RELEASE="true"
 fi
 export _RELEASE_VERSION="v${_APP_VERSION}-${_BUILD_VERSION}"
@@ -35,6 +36,7 @@ echo "_BUILD_VERSION=${_BUILD_VERSION}" >> "${GITHUB_ENV}"
 echo "_RELEASE_VERSION=${_RELEASE_VERSION}" >> "${GITHUB_ENV}"
 echo "_IS_BUILD_CANARY=${_IS_BUILD_CANARY}" >> "${GITHUB_ENV}"
 echo "_IS_GITHUB_RELEASE=${_IS_GITHUB_RELEASE}" >> "${GITHUB_ENV}"
+echo "_CHANGELOG_VERSION=${_CHANGELOG_VERSION}" >> "${GITHUB_ENV}"
 
 npm install --global create-dmg
 
