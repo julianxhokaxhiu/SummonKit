@@ -4,13 +4,13 @@
         <title>SummonKit</title>
         <item>
             <title>1.0.0</title>
-            <pubDate>Fri, 20 Mar 2026 19:17:25 +0000</pubDate>
+            <pubDate>Fri, 20 Mar 2026 19:49:29 +0000</pubDate>
             <link>https://github.com/julianxhokaxhiu/SummonKit</link>
             <sparkle:fullReleaseNotesLink>https://github.com/julianxhokaxhiu/SummonKit/releases/tag/canary</sparkle:fullReleaseNotesLink>
-            <sparkle:version>1774034141</sparkle:version>
+            <sparkle:version>1774036079</sparkle:version>
             <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/julianxhokaxhiu/SummonKit/releases/download/canary/SummonKit-v1.0.0-1774034141.dmg" length="600950280" type="application/octet-stream" sparkle:edSignature="IcX3TZfNOHCJOBuYU33nLHPTJ/taMMZfqMYLThijSe1b41Wp8MaXESMGcCEBPOhe4ceQvpLDEkKNZMgvG/6/BA=="/>
+            <enclosure url="https://github.com/julianxhokaxhiu/SummonKit/releases/download/canary/SummonKit-v1.0.0-1774036079.dmg" length="600936170" type="application/octet-stream" sparkle:edSignature="R6v7cKHvtr/qCj5Z3rYjRC8bFOWKioe8WJj1uAwNdPpnUYzlrk2xFQmiyOkI58Opsulu9VjV6ht9SbDrsik2Dw=="/>
         </item>
     </channel>
 </rss>
