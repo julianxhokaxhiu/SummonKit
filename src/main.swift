@@ -1801,6 +1801,9 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDeleg
         updaterController?.updater.clearFeedURLFromUserDefaults()
         applySelectedUpdateChannelToSparkle()
         buildMenuBar()
+
+        // Trigger an update check at startup.
+        updaterController?.updater.checkForUpdatesInBackground()
     }
 
     private func buildMenuBar() {
