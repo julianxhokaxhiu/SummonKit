@@ -1636,11 +1636,11 @@ final class LauncherEngine {
 
         setupWineEnvironment()
 
-        // For Memoria, pre-resolve game install before deciding whether to prompt for a custom installer.
+        // Pre-resolve game install before deciding whether to prompt for a custom installer.
         // Prefer GOG-in-prefix path first to avoid falling back to Steam copy when GOG is already installed.
         // Prompt suppression should trigger only when the game is already set up in this Wine prefix
         // (either via GOG-in-prefix path or a Steam setup already present in prefix manifests).
-        let preDetectedGOGInstall = product.id == "memoria" ? findGOGGamePath() : nil
+        let preDetectedGOGInstall = findGOGGamePath()
         let hasSteamSetupInPrefix = product.id == "memoria" ? hasSteamInstallInPrefix() : false
         let preDetectedGameInstall = preDetectedGOGInstall ?? (product.id == "memoria" ? findGamePath() : nil)
 
@@ -1653,9 +1653,11 @@ final class LauncherEngine {
                 preDetectedGOGInstall == nil &&
                 !hasSteamSetupInPrefix
         } else {
+            // For other products, check if game is already installed in prefix (GOG) before checking targetExe
+            let hasExistingInstallInPrefix = preDetectedGOGInstall != nil || FileManager.default.fileExists(atPath: paths.targetExe.path)
             shouldPromptForCustomInstaller =
                 product.allowsCustomGameInstaller &&
-                !FileManager.default.fileExists(atPath: paths.targetExe.path)
+                !hasExistingInstallInPrefix
         }
         let selectedCustomInstaller = shouldPromptForCustomInstaller ? promptForCustomGameInstaller() : nil
 
@@ -1683,7 +1685,8 @@ final class LauncherEngine {
             } else if product.id == "memoria" {
                 resolvedGameInstall = findGOGGamePath() ?? findGamePath()
             } else {
-                resolvedGameInstall = findGamePath()
+                // For non-Memoria products, also check GOG first before falling back to Steam
+                resolvedGameInstall = findGOGGamePath() ?? findGamePath()
             }
 
             guard let gameInstall = resolvedGameInstall else {
