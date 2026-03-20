@@ -43,6 +43,31 @@ jobs:
       with:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
         path: "dist/*.dmg"
+    - name: VirusTotal Scan
+      id: vt-scan
+      if: env._IS_GITHUB_RELEASE == 'true' && success()
+      uses: crazy-max/ghaction-virustotal@v4
+      with:
+        vt_api_key: ${{ secrets._VT_API_KEY }}
+        files: "dist/*.dmg"
+    - name: Parse VirusTotal Results
+      id: vt-res
+      if: env._IS_GITHUB_RELEASE == 'true' && success()
+      uses: actions/github-script@v7
+      with:
+        result-encoding: string
+        script: |
+          let ret = `${{ steps.vt-scan.outputs.analysis }}`;
+
+          ret = '- ' + ret
+          .replaceAll('dist/','')
+          .replaceAll('=h', ': h')
+          .replaceAll(',', "\n- ");
+
+          console.log('Results:');
+          console.log(ret);
+
+          return ret;
     - name: Move canary tag to this commit
       uses: richardsimko/update-tag@v1
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
@@ -64,6 +89,9 @@ jobs:
 
           This is a canary build. Please be aware it may be prone to crashing and is NOT tested by anyone.
           The App is NOT signed. You need to allow it to run in your Gatekeeper settings panel. Use this build AT YOUR OWN RISK!
+
+          🛡️ **VirusTotal analysis:**
+          ${{ steps.vt-res.outputs.result }}
     - name: Publish Stable release
       uses: ncipollo/release-action@v1
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
@@ -75,6 +103,9 @@ jobs:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
         body: |
           See https://github.com/julianxhokaxhiu/SummonKit/blob/master/Changelog.md#${{ env._CHANGELOG_VERSION }}
+
+          🛡️ **VirusTotal analysis:**
+          ${{ steps.vt-res.outputs.result }}
     - name: Publish appcast to GitHub Pages
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
       run: |
