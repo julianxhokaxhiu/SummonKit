@@ -34,7 +34,7 @@ struct LauncherProduct {
     let gameDisplayName: String
     let steamGameDirectoryName: String
     let steamGameIDs: [String]
-    let gogFallbackRelativePath: String
+    let gogInstallRegistryKey: String
     let steamUserRelativePath: String
     let wineAppDefaultExeName: String
     let wineDLLOverrides: String
@@ -751,6 +751,52 @@ final class LauncherEngine {
         return nil
     }
 
+    private func readRegistryValue(keyPath: String, valueName: String) -> String? {
+        let task = Process()
+        task.executableURL = paths.wineBin
+        task.arguments = ["reg", "query", keyPath, "/v", valueName]
+
+        let outputPipe = Pipe()
+        task.standardOutput = outputPipe
+        task.standardError = outputPipe
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+        } catch {
+            log("Failed to query registry key \(keyPath): \(error.localizedDescription)")
+            return nil
+        }
+
+        guard task.terminationStatus == 0 else {
+            log("Registry key not found or unreadable: \(keyPath) [value=\(valueName)]")
+            return nil
+        }
+
+        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: outputData, encoding: .utf8) else {
+            log("Failed to decode registry output for key: \(keyPath)")
+            return nil
+        }
+
+        let escapedValueName = NSRegularExpression.escapedPattern(for: valueName)
+        let pattern = "^\\s*\(escapedValueName)\\s+REG_\\w+\\s+(.+?)\\s*$"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else {
+            log("Failed to compile registry parsing regex for value: \(valueName)")
+            return nil
+        }
+
+        let range = NSRange(output.startIndex..., in: output)
+        guard let match = regex.firstMatch(in: output, options: [], range: range),
+              let valueRange = Range(match.range(at: 1), in: output) else {
+            log("Registry value \(valueName) not found in key: \(keyPath)")
+            return nil
+        }
+
+        let value = String(output[valueRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
     private func findSteamGamePath() -> GameInstallLocation? {
         let steamConfig = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Steam/steamapps/libraryfolders.vdf")
@@ -854,18 +900,29 @@ final class LauncherEngine {
     }
 
     private func findGOGGamePath() -> GameInstallLocation? {
-        let gogPath = paths.winePrefix.appendingPathComponent(product.gogFallbackRelativePath).path
+        let registryKey = product.gogInstallRegistryKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !registryKey.isEmpty else {
+            return nil
+        }
+
+        guard let windowsPath = readRegistryValue(keyPath: registryKey, valueName: "path") else {
+            return nil
+        }
+
+        let gogURL = convertWindowsPathToPrefixPath(windowsPath)
+        let gogPath = gogURL.path
 
         if FileManager.default.fileExists(atPath: gogPath) {
-            log("Found \(product.gameDisplayName) at GOG fallback: \(gogPath)")
+            log("Found \(product.gameDisplayName) via GOG registry key: \(gogPath)")
             return GameInstallLocation(
                 path: gogPath,
-                installDir: URL(fileURLWithPath: gogPath).lastPathComponent,
+                installDir: gogURL.lastPathComponent,
                 gameID: "",
                 libraryPath: ""
             )
         }
 
+        log("GOG registry path does not exist in prefix: \(gogPath)")
         return nil
     }
 
@@ -1120,7 +1177,7 @@ final class LauncherEngine {
         let presentAlert = {
             let alert = NSAlert()
             alert.messageText = "Path not found"
-            alert.informativeText = "Could not locate \(self.product.gameDisplayName) in Steam paths or GOG fallback path."
+            alert.informativeText = "Could not locate \(self.product.gameDisplayName) in Steam paths or GOG location."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "OK")
             NSApp.activate(ignoringOtherApps: true)
@@ -1201,11 +1258,12 @@ final class LauncherEngine {
         showStatusMessage("Locating game path...", style: .informational)
 
         if product.id == "memoria" {
+            let gogInPrefixPath = findGOGGamePath().map { URL(fileURLWithPath: $0.path) }
             let winePrefixCandidates: [URL] = [
                 paths.gameDirectory,
                 paths.targetExe.deletingLastPathComponent(),
                 paths.winePrefix.appendingPathComponent("drive_c/Program Files (x86)/Steam/steamapps/common/\(product.steamGameDirectoryName)"),
-                paths.winePrefix.appendingPathComponent(product.gogFallbackRelativePath)
+                gogInPrefixPath
             ].compactMap { $0 }
 
             guard let currentGamePath = winePrefixCandidates.first(where: {

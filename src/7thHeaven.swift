@@ -15,7 +15,7 @@ struct SeventhHeavenProvider: LauncherProductProviding {
         gameDisplayName: "Final Fantasy VII",
         steamGameDirectoryName: "FINAL FANTASY VII",
         steamGameIDs: ["39140", "3837340"],
-        gogFallbackRelativePath: "drive_c/GOG Games/Final Fantasy VII",
+        gogInstallRegistryKey: "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\GOG.com\\Games\\1698970154",
         steamUserRelativePath: "Documents/Square Enix/FINAL FANTASY VII Steam/user_12345678",
         wineAppDefaultExeName: "7th Heaven.exe",
         wineDLLOverrides: "dinput=n,b",
