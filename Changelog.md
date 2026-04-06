@@ -6,6 +6,7 @@
 
 - Check for Updates on launch using the configured channel in settings
 - Add support for Memoria ( Steam, GOG )
+- Improve GOG installation path detection using the registry ( no more needed to be installed on the default path )
 
 # 1.0.0
 
