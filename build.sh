@@ -147,7 +147,7 @@ install_dxmt_runtime() {
   dxmt_url=$(printf '%s\n' "$release_json" | jq -r '.assets[].browser_download_url | select(test("builtin.*\\.tar\\.gz$"))' | head -n 1)
 
   if [ -z "$dxmt_url" ]; then
-    echo "ERROR: Could not find a DXMT .tar.gz asset in latest release"
+    echo "ERROR: Could not find a DXMT builtin release for version ${dxmt_tag}"
     exit 1
   fi
 
@@ -159,7 +159,7 @@ install_dxmt_runtime() {
   }
   trap cleanup_dxmt_tmp RETURN
 
-  echo "   DXMT release: ${dxmt_tag:-latest}"
+  echo "   DXMT release: $dxmt_tag"
   echo "   Download URL : $dxmt_url"
 
   if ! curl -fsSL --progress-bar -o "$archive_path" "$dxmt_url"; then
@@ -214,13 +214,13 @@ download_wine_runtime() {
   wine_url=$(printf '%s\n' "$release_json" | jq -r '.assets[].browser_download_url | select(test("wine-staging.*osx64.*\\.tar\\.xz$"))' | head -n 1)
 
   if [ -z "$wine_url" ]; then
-    echo "ERROR: Could not find a Wine .tar.xz asset in latest Gcenx release"
+    echo "ERROR: Could not find any available Wine Staging release for version ${wine_tag}"
     exit 1
   fi
 
   wine_archive="$SCRIPT_DIR/$(basename "$wine_url")"
 
-  echo "   Wine release : ${wine_tag:-latest}"
+  echo "   Wine release : $wine_tag"
   echo "   Download URL : $wine_url"
 
   if ! curl -fsSL --progress-bar -o "$wine_archive" "$wine_url"; then
