@@ -137,19 +137,14 @@ install_dxmt_runtime() {
     exit 1
   fi
 
-  dxmt_tag=$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
-
-  dxmt_url=$(printf '%s\n' "$release_json" \
-    | sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*\)".*/\1/p' \
-    | grep -E 'builtin.*\.tar\.gz$' \
-    | head -n 1)
-
-  if [ -z "$dxmt_url" ]; then
-    dxmt_url=$(printf '%s\n' "$release_json" \
-      | sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*\)".*/\1/p' \
-      | grep -E '\.tar\.gz$' \
-      | head -n 1)
+  if ! command -v jq &> /dev/null; then
+    echo "ERROR: jq is required but not installed. Please install jq to continue."
+    exit 1
   fi
+
+  dxmt_tag=$(printf '%s\n' "$release_json" | jq -r '.tag_name')
+
+  dxmt_url=$(printf '%s\n' "$release_json" | jq -r '.assets[].browser_download_url | select(test("builtin.*\\.tar\\.gz$"))' | head -n 1)
 
   if [ -z "$dxmt_url" ]; then
     echo "ERROR: Could not find a DXMT .tar.gz asset in latest release"
@@ -209,20 +204,14 @@ download_wine_runtime() {
     exit 1
   fi
 
-  wine_tag=$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
-
-  # Prefer wine-staging osx64 builds; fall back to any .tar.xz asset.
-  wine_url=$(printf '%s\n' "$release_json" \
-    | sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*\)".*/\1/p' \
-    | grep -E 'wine-staging.*osx64.*\.tar\.xz$' \
-    | head -n 1)
-
-  if [ -z "$wine_url" ]; then
-    wine_url=$(printf '%s\n' "$release_json" \
-      | sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*\)".*/\1/p' \
-      | grep -E '\.tar\.xz$' \
-      | head -n 1)
+  if ! command -v jq &> /dev/null; then
+    echo "ERROR: jq is required but not installed. Please install jq to continue."
+    exit 1
   fi
+
+  wine_tag=$(printf '%s\n' "$release_json" | jq -r '.tag_name')
+
+  wine_url=$(printf '%s\n' "$release_json" | jq -r '.assets[].browser_download_url | select(test("wine-staging.*osx64.*\\.tar\\.xz$"))' | head -n 1)
 
   if [ -z "$wine_url" ]; then
     echo "ERROR: Could not find a Wine .tar.xz asset in latest Gcenx release"
