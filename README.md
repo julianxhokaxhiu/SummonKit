@@ -128,7 +128,12 @@ Then, depending on which game edition you own you might want to follow one of th
 
 ## How to build
 
-Make sure you have installed the [XCode Command Line Tools](https://developer.apple.com/documentation/xcode/installing-the-command-line-tools#Install-the-Command-Line-Tools-package-in-Terminal), then:
+In order to build SummonKit locally you need:
+
+- [XCode Command Line Tools](https://developer.apple.com/documentation/xcode/installing-the-command-line-tools#Install-the-Command-Line-Tools-package-in-Terminal)
+- [jq](https://jqlang.org/) ( you can also install it via [brew](https://formulae.brew.sh/formula/jq) )
+
+then, in any Terminal session:
 
 ```sh
 $ git clone https://github.com/julianxhokaxhiu/SummonKit.git
