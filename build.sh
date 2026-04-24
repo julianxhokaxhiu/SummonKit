@@ -49,6 +49,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 WINE_BASE="$SCRIPT_DIR/wine_runtime"
 WINE_SRC="$WINE_BASE/Contents/Resources/wine"   # resolved later to support multiple archive layouts
 
+# Global version tracking
+WINE_TAG=""
+DXMT_TAG=""
+
 # ---------------------------------------------------------------------------
 # Parse arguments
 # ---------------------------------------------------------------------------
@@ -119,10 +123,10 @@ install_dxmt_runtime() {
   local release_api="https://api.github.com/repos/3Shain/dxmt/releases/latest"
   local release_json=""
   local dxmt_url=""
-  local dxmt_tag=""
   local tmp_dir=""
   local archive_path=""
   local dxmt_dest_root="$CONTENTS/Resources/dxmt"
+  local dxmt_tag=""
 
   echo "→ Installing latest DXMT runtime files..."
 
@@ -143,6 +147,7 @@ install_dxmt_runtime() {
   fi
 
   dxmt_tag=$(printf '%s\n' "$release_json" | jq -r '.tag_name')
+  DXMT_TAG="$dxmt_tag"
 
   dxmt_url=$(printf '%s\n' "$release_json" | jq -r '.assets[].browser_download_url | select(test("builtin.*\\.tar\\.gz$"))' | head -n 1)
 
@@ -183,8 +188,8 @@ download_wine_runtime() {
   local release_api="https://api.github.com/repos/Gcenx/macOS_Wine_builds/releases/latest"
   local release_json=""
   local wine_url=""
-  local wine_tag=""
   local wine_archive=""
+  local wine_tag=""
 
   echo "→ Fetching latest Wine runtime from Gcenx/macOS_Wine_builds..."
 
@@ -210,6 +215,7 @@ download_wine_runtime() {
   fi
 
   wine_tag=$(printf '%s\n' "$release_json" | jq -r '.tag_name')
+  WINE_TAG="$wine_tag"
 
   wine_url=$(printf '%s\n' "$release_json" | jq -r '.assets[].browser_download_url | select(test("wine-staging.*osx64.*\\.tar\\.xz$"))' | head -n 1)
 
@@ -494,4 +500,12 @@ echo "============================================"
 echo ""
 echo "  App bundle : $APP"
 echo "  Total size : $(du -sh "$APP" | cut -f1)"
+echo "  Wine version : $WINE_TAG"
+echo "  DXMT version : $DXMT_TAG"
 echo ""
+
+# Output versions for CI/CD workflows
+if [ -n "${GITHUB_ENV:-}" ]; then
+  echo "_WINE_VERSION=${WINE_TAG}" >> "${GITHUB_ENV}"
+  echo "_DXMT_VERSION=${DXMT_TAG}" >> "${GITHUB_ENV}"
+fi

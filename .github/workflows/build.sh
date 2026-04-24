@@ -48,6 +48,11 @@ echo "--------------------------------------------------"
 create-dmg --no-code-sign --no-version-in-filename dist/SummonKit.app dist/
 mv "./dist/${_RELEASE_NAME}.dmg" "./dist/${_RELEASE_NAME}-${_RELEASE_VERSION}.dmg"
 
+# Capture Wine and DXMT versions that were written to GITHUB_ENV by build.sh
+if [ -f "${GITHUB_ENV}" ]; then
+  source "${GITHUB_ENV}"
+fi
+
 # ---------------------------------------------------------------------------
 # Validate app binary architecture (must be universal)
 # ---------------------------------------------------------------------------

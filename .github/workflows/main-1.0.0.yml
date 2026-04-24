@@ -90,6 +90,10 @@ jobs:
           This is a canary build. Please be aware it may be prone to crashing and is NOT tested by anyone.
           The App is NOT signed. You need to allow it to run in your Gatekeeper settings panel. Use this build AT YOUR OWN RISK!
 
+          **Runtime Versions:**
+          - Wine: ${{ env._WINE_VERSION }}
+          - DXMT: ${{ env._DXMT_VERSION }}
+
           🛡️ **VirusTotal analysis:**
           ${{ steps.vt-res.outputs.result }}
     - name: Publish Stable release
@@ -103,6 +107,10 @@ jobs:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
         body: |
           See https://github.com/julianxhokaxhiu/SummonKit/blob/master/Changelog.md#${{ env._CHANGELOG_VERSION }}
+
+          **Runtime Versions:**
+          - Wine: ${{ env._WINE_VERSION }}
+          - DXMT: ${{ env._DXMT_VERSION }}
 
           🛡️ **VirusTotal analysis:**
           ${{ steps.vt-res.outputs.result }}
