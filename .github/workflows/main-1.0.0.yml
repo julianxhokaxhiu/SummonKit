@@ -43,13 +43,13 @@ jobs:
       with:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
         path: "dist/*.dmg"
-    - name: VirusTotal Scan
+    - name: VirusTotal Launcher Scan
       id: vt-scan
       if: env._IS_GITHUB_RELEASE == 'true' && success()
       uses: crazy-max/ghaction-virustotal@v5
       with:
         vt_api_key: ${{ secrets._VT_API_KEY }}
-        files: "dist/*.dmg"
+        files: "dist/SummonKit.app/Contents/MacOS/SummonKit"
     - name: Parse VirusTotal Results
       id: vt-res
       if: env._IS_GITHUB_RELEASE == 'true' && success()
@@ -60,7 +60,7 @@ jobs:
           let ret = `${{ steps.vt-scan.outputs.analysis }}`;
 
           ret = '- ' + ret
-          .replaceAll('dist/','')
+          .replaceAll('dist/SummonKit.app/Contents/MacOS/','')
           .replaceAll('=h', ': h')
           .replaceAll(',', "\n- ");
 
@@ -94,7 +94,9 @@ jobs:
           - Wine: ${{ env._WINE_VERSION }}
           - DXMT: ${{ env._DXMT_VERSION }}
 
-          🛡️ **VirusTotal analysis:**
+          🛡️ **VirusTotal analysis (SummonKit launcher only):**
+          Only the compiled SummonKit binary is submitted for analysis. The DMG and bundled dependencies are not scanned.
+
           ${{ steps.vt-res.outputs.result }}
     - name: Publish Stable release
       uses: ncipollo/release-action@v1
@@ -112,7 +114,9 @@ jobs:
           - Wine: ${{ env._WINE_VERSION }}
           - DXMT: ${{ env._DXMT_VERSION }}
 
-          🛡️ **VirusTotal analysis:**
+          🛡️ **VirusTotal analysis (SummonKit launcher only):**
+          Only the compiled SummonKit binary is submitted for analysis. The DMG and bundled dependencies are not scanned.
+
           ${{ steps.vt-res.outputs.result }}
     - name: Publish appcast to GitHub Pages
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
