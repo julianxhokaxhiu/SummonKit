@@ -7,7 +7,7 @@ struct MemoriaProvider: LauncherProductProviding {
         displayName: "Memoria",
         statusWindowTitle: "Memoria - Status",
         launchBanner: "Launching Memoria...",
-        githubApiURL: "https://api.github.com/repos/julianxhokaxhiu/Memoria/releases/latest",
+        githubApiURL: "https://api.github.com/repos/Albeoris/Memoria/releases/latest",
         installerFileBaseName: "Memoria.Patcher",
         targetExeRelativePath: "./FF9_Launcher.exe",
         targetExeProfilePath: "./",
