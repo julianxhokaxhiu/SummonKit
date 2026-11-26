@@ -109,7 +109,7 @@ if [[ "$_IS_GITHUB_RELEASE" == "true" ]]; then
   trap 'rm -f "$SPARKLE_KEY_FILE"; rm -rf "$SPARKLE_TOOLS_DIR"' EXIT
 
   # Canary releases are always published under the fixed "canary" tag;
-  # stable releases are published under the version tag (e.g. 1.0.0).
+  # stable releases are published under the version tag (e.g. 1.1.0).
   # The DMG filename is determined by create-dmg from the app name and
   # Info.plist version, e.g. "SummonKit-v0.1.0-12345678.dmg" → urlencoded by
   # generate_appcast automatically.  We just need the correct tag in the

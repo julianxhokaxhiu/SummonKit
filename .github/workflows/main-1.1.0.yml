@@ -1,6 +1,6 @@
 name: SummonKit
 
-run-name: 1.0.0.${{ github.run_number }}
+run-name: 1.1.0.${{ github.run_number }}
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ env:
   _RELEASE_VERSION: v0
   _RELEASE_CONFIGURATION: Release
   _BUILD_BRANCH: "${{ github.ref }}"
-  _APP_VERSION: "1.0.0"
+  _APP_VERSION: "1.1.0"
   _CHANGELOG_VERSION: "0"
   # GIT: Fix reporting from stderr to stdout
   GIT_REDIRECT_STDERR: 2>&1
@@ -154,6 +154,6 @@ jobs:
         keep_minimum_runs: 1
         delete_run_by_conclusion_pattern: >-
           ${{
-            !contains(github.event.inputs.delete_run_by_name_pattern, '1.0.0')
+            !contains(github.event.inputs.delete_run_by_name_pattern, '1.1.0')
             && github.event.inputs.delete_run_by_name_pattern
           }}

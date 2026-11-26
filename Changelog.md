@@ -1,6 +1,10 @@
 # Next
 
-- Full commit list since last stable release: https://github.com/julianxhokaxhiu/SummonKit/compare/1.0.0...master
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/SummonKit/compare/1.1.0...master
+
+# 1.1.0
+
+- Full commit list since last stable release: https://github.com/julianxhokaxhiu/SummonKit/compare/1.0.0...1.1.0
 
 ## Core
 
